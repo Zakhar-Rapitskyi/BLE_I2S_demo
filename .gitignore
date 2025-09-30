@@ -1,0 +1,10 @@
+
+build/
+output/
+*.hex
+*.bin
+*.out
+*.o
+*.d
+*.map
+*.nrfjprog

@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "defines": [
+                "APP_TIMER_V2",
+                "APP_TIMER_V2_RTC1_ENABLED",
+                "BOARD_PCA10040",
+                "CONFIG_GPIO_AS_PINRESET",
+                "FLOAT_ABI_HARD",
+                "INITIALIZE_USER_SECTIONS",
+                "NO_VTOR_CONFIG",
+                "NRF52",
+                "NRF52832_XXAA",
+                "NRF52_PAN_74",
+                "NRF_SD_BLE_API_VERSION=7",
+                "S132",
+                "SOFTDEVICE_PRESENT"
+            ],
+            "includePath": [
+                "${default}",
+                "/home/zakhar/nordic/nRF5_SDK_17.1.0_ddde560/**",
+                "${workspaceFolder}/config",
+                "${workspaceFolder}/**"
+            ],
+            "cStandard": "gnu99"
+        }
+    ],
+    "version": 4
+}
