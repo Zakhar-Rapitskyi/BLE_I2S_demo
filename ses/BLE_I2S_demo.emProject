@@ -137,6 +137,6 @@
     </folder>
     <configuration
       Name="Debug"
-      c_user_include_directories=".;$(ProjectDir)/config;$(ProjectDir)/../src/ble_audio_acc_service;$(ProjectDir)/../src/audio_player" />
+      c_user_include_directories=".;$(ProjectDir)/config;$(ProjectDir)/../src/ble_audio_acc_service;$(ProjectDir)/../src/audio_player;$(ProjectDir)/../inc;$(ProjectDir)/../audio_files" />
   </project>
 </solution>

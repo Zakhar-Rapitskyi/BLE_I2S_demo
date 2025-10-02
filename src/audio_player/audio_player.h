@@ -23,9 +23,10 @@ typedef enum
  */
 typedef enum
 {
-    AUDIO_STATE_IDLE,     /**< Not playing */
-    AUDIO_STATE_PLAYING,  /**< Currently playing */
-    AUDIO_STATE_STOPPING, /**< Stopping playback */
+    AUDIO_STATE_UNINITIALIZED, /**< Not initialized */
+    AUDIO_STATE_IDLE,          /**< Not playing */
+    AUDIO_STATE_PLAYING,       /**< Currently playing */
+    AUDIO_STATE_STOPPING,      /**< Stopping playback */
 } audio_state_t;
 
 /**
