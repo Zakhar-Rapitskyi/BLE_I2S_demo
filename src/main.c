@@ -17,6 +17,8 @@
 #include "nrf_pwr_mgmt.h"
 #include "ble_audio_acc_service.h"
 #include "audio_player.h"
+#include "accelerometer.h"
+#include "app_button.h"
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -43,15 +45,28 @@
 #define NEXT_CONN_PARAMS_UPDATE_DELAY APP_TIMER_TICKS(5000)   /**< Time between each call to sd_ble_gap_conn_param_update after the first call (5 seconds). */
 #define MAX_CONN_PARAMS_UPDATE_COUNT 3                        /**< Number of attempts before giving up the connection parameter negotiation. */
 
+#define USE_ACCEL_WORKAROUND 1 /**< TODO: SET TO 0 WHEN NORMAL ACCELEROMETER WILL BE PRESENT */
+
+#if USE_ACCEL_WORKAROUND
+#define PIN_OUT 2 /**< Pin will set to 1 when button is pressed(INT simulation) */
+#else
+#define PIN_OUT LED_4 /**< LED will on when button is pressed and accel workaround is disabled */
+#endif
+
+#define BUTTON_PIN BSP_BUTTON_0                    /**< Accelerometer interrupt simulation button (Button 1 on DK) */
+#define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50) /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
+
 BLE_AUDIO_ACC_DEF(m_audio_acc_service); /**< LED Button Service instance. */
 NRF_BLE_GATT_DEF(m_gatt);               /**< GATT module instance. */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID; /**< Handle of the current connection. */
 
-static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;           /**< Advertising handle used to identify an advertising set. */
-static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];            /**< Buffer for storing an encoded advertising set. */
+static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET; /**< Advertising handle used to identify an advertising set. */
+static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];  /**< Buffer for storing an encoded advertising set. */
 
-/**@brief Struct that contains pointers to the encoded advertising data. */
+/**
+ * @brief Struct that contains pointers to the encoded advertising data.
+ */
 static ble_gap_adv_data_t m_adv_data =
     {
         .adv_data =
@@ -60,7 +75,8 @@ static ble_gap_adv_data_t m_adv_data =
                 .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX},
         .scan_rsp_data = {.p_data = NULL, .len = 0}};
 
-/**@brief Function for the LEDs initialization.
+/**
+ * @brief Function for the LEDs initialization.
  *
  * @details Initializes all LEDs used by the application.
  */
@@ -69,7 +85,8 @@ static void leds_init(void)
     bsp_board_init(BSP_INIT_LEDS);
 }
 
-/**@brief Function for the Timer initialization.
+/**
+ * @brief Function for the Timer initialization.
  *
  * @details Initializes the timer module.
  */
@@ -80,7 +97,8 @@ static void timers_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for the GAP initialization.
+/**
+ * @brief Function for the GAP initialization.
  *
  * @details This function sets up all the necessary GAP (Generic Access Profile) parameters of the
  *          device including the device name, appearance, and the preferred connection parameters.
@@ -107,7 +125,8 @@ static void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for initializing the GATT module.
+/**
+ * @brief Function for initializing the GATT module.
  */
 static void gatt_init(void)
 {
@@ -115,7 +134,8 @@ static void gatt_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for initializing the Advertising functionality.
+/**
+ * @brief Function for initializing the Advertising functionality.
  *
  * @details Encodes the required advertising data and passes it to the stack.
  *          Also builds a structure to be passed to the stack when starting advertising.
@@ -148,7 +168,8 @@ static void advertising_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for handling write events to the LED characteristic.
+/**
+ * @brief Function for handling write events to the LED characteristic.
  *
  * @param[in] p_lbs     Instance of LED Button Service to which the write applies.
  * @param[in] led_state Written/desired state of the LED.
@@ -174,7 +195,8 @@ static void audio_write_handler(uint16_t conn_handle, ble_audio_acc_service_t *p
     }
 }
 
-/**@brief Function for initializing services that will be used by the application.
+/**
+ * @brief Function for initializing services that will be used by the application.
  */
 static void services_init(void)
 {
@@ -187,7 +209,8 @@ static void services_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for handling the Connection Parameters Module.
+/**
+ * @brief Function for handling the Connection Parameters Module.
  *
  * @details This function will be called for all events in the Connection Parameters Module that
  *          are passed to the application.
@@ -209,7 +232,8 @@ static void on_conn_params_evt(ble_conn_params_evt_t *p_evt)
     }
 }
 
-/**@brief Function for handling a Connection Parameters error.
+/**
+ * @brief Function for handling a Connection Parameters error.
  *
  * @param[in] nrf_error  Error code containing information about what went wrong.
  */
@@ -218,7 +242,8 @@ static void conn_params_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
-/**@brief Function for initializing the Connection Parameters module.
+/**
+ * @brief Function for initializing the Connection Parameters module.
  */
 static void conn_params_init(void)
 {
@@ -240,7 +265,8 @@ static void conn_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for starting advertising.
+/**
+ * @brief Function for starting advertising.
  */
 static void advertising_start(void)
 {
@@ -252,7 +278,8 @@ static void advertising_start(void)
     bsp_board_led_on(ADVERTISING_LED);
 }
 
-/**@brief Function for handling BLE events.
+/**
+ * @brief Function for handling BLE events.
  *
  * @param[in]   p_ble_evt   Bluetooth stack event.
  * @param[in]   p_context   Unused.
@@ -268,6 +295,8 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
         bsp_board_led_on(CONNECTED_LED);
         bsp_board_led_off(ADVERTISING_LED);
         m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+        err_code = accelerometer_enable_interrupt();
+        APP_ERROR_CHECK(err_code);
         err_code = app_button_enable();
         APP_ERROR_CHECK(err_code);
         break;
@@ -277,6 +306,8 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
         bsp_board_led_off(CONNECTED_LED);
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
         err_code = app_button_disable();
+        APP_ERROR_CHECK(err_code);
+        err_code = accelerometer_disable_interrupt();
         APP_ERROR_CHECK(err_code);
         advertising_start();
         break;
@@ -326,16 +357,16 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
         break;
 
     default:
-        // No implementation needed.
+        // Ignore.
         break;
     }
 }
 
-/**@brief Function for initializing the BLE stack./**@brief Function for initializing services that will be used by the application.
-
-*
-* @details Initializes the SoftDevice and the BLE event interrupt.
-*/
+/**
+ * @brief Function for initializing the BLE stack.
+ *
+ * @details Initializes the SoftDevice and the BLE event interrupt.
+ */
 static void ble_stack_init(void)
 {
     ret_code_t err_code;
@@ -365,7 +396,8 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-/**@brief Function for initializing power management.
+/**
+ * @brief Function for initializing power management.
  */
 static void power_management_init(void)
 {
@@ -374,13 +406,17 @@ static void power_management_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+/**
+ * @brief Function for handling end of playback.
+ */
 static void audio_playback_complete(uint8_t melody_id)
 {
     NRF_LOG_INFO("Melody %d playback completed", melody_id);
     bsp_board_led_off(LEDBUTTON_LED);
 }
 
-/**@brief Function for initializing audio module.
+/**
+ * @brief Function for initializing audio module.
  */
 static void audio_init(void)
 {
@@ -393,7 +429,42 @@ static void audio_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief Function for handling the idle state (main loop).
+/**
+ * @brief Function for updating accel ble characteristic on interrupt.
+ */
+static void accelerometer_interrupt_handler(const accelerometer_data_t *p_data)
+{
+    NRF_LOG_INFO("Motion detected! X=%d, Y=%d, Z=%d", p_data->x, p_data->y, p_data->z);
+
+    // check if BLE is connected
+    if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        uint8_t acc_bytes[6];
+        accelerometer_data_to_bytes(p_data, acc_bytes);
+
+        ble_audio_acc_accelerometer_update(m_conn_handle,
+                                           &m_audio_acc_service,
+                                           acc_bytes);
+    }
+}
+
+/**
+ * @brief Function for initializing audio module.
+ */
+static void acc_init(void)
+{
+    ret_code_t err_code;
+    accelerometer_init_t init = {0};
+
+    init.i2c_address = BMA280_I2C_ADRESS;
+    init.motion_handler = accelerometer_interrupt_handler;
+
+    err_code = accelerometer_init(&init);
+    APP_ERROR_CHECK(err_code);
+}
+
+/**
+ * @brief Function for handling the idle state (main loop).
  *
  * @details If there is no pending log operation, then sleep until next the next event occurs.
  */
@@ -403,9 +474,45 @@ static void idle_state_handle(void)
     {
         nrf_pwr_mgmt_run();
     }
+    accelerometer_process_event();
 }
 
-/**@brief Function for application main entry.
+/**
+ * @brief Function for handling events from the button handler module.
+ *
+ * @param[in] pin_no        The pin that the event applies to.
+ * @param[in] button_action The button action (press/release).
+ */
+static void button_handler(uint8_t pin_no, uint8_t button_action)
+{
+    if (button_action == APP_BUTTON_PUSH)
+    {
+        nrf_gpio_pin_set(PIN_OUT);
+    }
+    else if (button_action == APP_BUTTON_RELEASE)
+    {
+        nrf_gpio_pin_clear(PIN_OUT);
+    }
+}
+
+/**
+ * @brief Function for initializing the button handler module.
+ */
+static void buttons_init(void)
+{
+    nrf_gpio_cfg_output(PIN_OUT);
+    nrf_gpio_pin_clear(PIN_OUT);
+
+    static app_button_cfg_t buttons[] =
+        {
+            {BUTTON_PIN, APP_BUTTON_ACTIVE_LOW, NRF_GPIO_PIN_PULLUP, button_handler}};
+
+    ret_code_t err_code = app_button_init(buttons, ARRAY_SIZE(buttons), BUTTON_DETECTION_DELAY);
+    APP_ERROR_CHECK(err_code);
+}
+
+/**
+ * @brief Function for application main entry.
  */
 int main(void)
 {
@@ -414,6 +521,7 @@ int main(void)
     leds_init();
     audio_init();
     timers_init();
+    buttons_init();
     power_management_init();
     ble_stack_init();
     gap_params_init();
@@ -421,6 +529,7 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
+    acc_init();
 
     // Start execution.
     NRF_LOG_INFO("Demo started.");

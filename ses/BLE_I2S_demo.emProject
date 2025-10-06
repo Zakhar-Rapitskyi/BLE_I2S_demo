@@ -54,6 +54,9 @@
       <folder Name="BLE_Services">
         <file file_name="../src/ble_audio_acc_service/ble_audio_acc_service.c" />
       </folder>
+      <folder Name="Accelerometer">
+        <file file_name="../src/accelerometer/accelerometer.c" />
+      </folder>
     </folder>
     <folder Name="Board Definition">
       <file file_name="$(SDK_ROOT)/components/boards/boards.c" />
@@ -84,6 +87,8 @@
       <file file_name="$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c" />
       <file file_name="$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c" />
       <file file_name="../../../nordic/nRF5_SDK_17.1.0_ddde560/modules/nrfx/drivers/src/nrfx_i2s.c" />
+      <file file_name="../../../nordic/nRF5_SDK_17.1.0_ddde560/modules/nrfx/drivers/src/nrfx_twi.c" />
+      <file file_name="../../../nordic/nRF5_SDK_17.1.0_ddde560/integration/nrfx/legacy/nrf_drv_twi.c" />
     </folder>
     <folder Name="nRF_Libraries">
       <file file_name="$(SDK_ROOT)/components/libraries/button/app_button.c" />
@@ -137,6 +142,6 @@
     </folder>
     <configuration
       Name="Debug"
-      c_user_include_directories=".;$(ProjectDir)/config;$(ProjectDir)/../src/ble_audio_acc_service;$(ProjectDir)/../src/audio_player;$(ProjectDir)/../inc;$(ProjectDir)/../audio_files" />
+      c_user_include_directories=".;$(ProjectDir)/config;$(ProjectDir)/../src/ble_audio_acc_service;$(ProjectDir)/../src/audio_player;$(ProjectDir)/../inc;$(ProjectDir)/../audio_files;$(ProjectDir)/../src/accelerometer" />
   </project>
 </solution>

@@ -93,6 +93,8 @@ static uint32_t accelerometer_char_add(ble_audio_acc_service_t *p_service)
     attr_char_value.p_attr_md = &attr_md;
     attr_char_value.init_len = 6;
     attr_char_value.max_len = 6;
+    static const uint8_t acc_value_with_zeroes[6] = {0};
+    attr_char_value.p_value = acc_value_with_zeroes;
 
     return sd_ble_gatts_characteristic_add(p_service->service_handle,
                                            &char_md,
