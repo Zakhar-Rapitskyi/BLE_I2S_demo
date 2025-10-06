@@ -239,7 +239,7 @@ uint32_t accelerometer_init(const accelerometer_init_t *p_config)
 
     // Save config
     accelerometer_state.i2c_address = p_config->i2c_address;
-    accelerometer_state.int_pin = 25;
+    accelerometer_state.int_pin = p_config->int_pin;
     accelerometer_state.motion_handler = p_config->motion_handler;
     memset(&accelerometer_state.cached_data, 0, sizeof(accelerometer_state.cached_data));
 
@@ -333,8 +333,12 @@ uint32_t accelerometer_read(accelerometer_data_t *p_data)
 
     // Shift right by 4 to get 12-bit signed value
     x_raw = x_raw >> 4;
+    // Sign extend 12-bit to 16-bit
+    x_raw = (x_raw & 0x0800) ? (x_raw | 0xF000) : (x_raw & 0x0FFF);
     y_raw = y_raw >> 4;
+    y_raw = (y_raw & 0x0800) ? (y_raw | 0xF000) : (y_raw & 0x0FFF);
     z_raw = z_raw >> 4;
+    z_raw = (z_raw & 0x0800) ? (z_raw | 0xF000) : (z_raw & 0x0FFF);
 
     // Convert to mg using sensitivity
     p_data->x = x_raw * accelerometer_state.range_mg_per_lsb;

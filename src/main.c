@@ -26,7 +26,7 @@
 
 #define ADVERTISING_LED BSP_BOARD_LED_0 /**< Is on when device is advertising. */
 #define CONNECTED_LED BSP_BOARD_LED_1   /**< Is on when device has connected. */
-#define LEDBUTTON_LED BSP_BOARD_LED_2   /**< LED to be toggled with the help of the LED Button Service. */
+#define AUDIO_PLAYING_LED BSP_BOARD_LED_2   /**< LED to be toggled with the help of the LED Button Service. */
 
 #define DEVICE_NAME "I2S Player with accelerometer" /**< Name of device. Will be included in the advertising data. */
 
@@ -45,13 +45,19 @@
 #define NEXT_CONN_PARAMS_UPDATE_DELAY APP_TIMER_TICKS(5000)   /**< Time between each call to sd_ble_gap_conn_param_update after the first call (5 seconds). */
 #define MAX_CONN_PARAMS_UPDATE_COUNT 3                        /**< Number of attempts before giving up the connection parameter negotiation. */
 
+/*********************************************************************************************/
+
 #define USE_ACCEL_WORKAROUND 1 /**< TODO: SET TO 0 WHEN NORMAL ACCELEROMETER WILL BE PRESENT */
+
+/*********************************************************************************************/
 
 #if USE_ACCEL_WORKAROUND
 #define PIN_OUT 2 /**< Pin will set to 1 when button is pressed(INT simulation) */
 #else
 #define PIN_OUT LED_4 /**< LED will on when button is pressed and accel workaround is disabled */
 #endif
+
+#define ACCEL_INT_PIN 25 /**< Motion interrupt pin number  */
 
 #define BUTTON_PIN BSP_BUTTON_0                    /**< Accelerometer interrupt simulation button (Button 1 on DK) */
 #define BUTTON_DETECTION_DELAY APP_TIMER_TICKS(50) /**< Delay from a GPIOTE event until a button is reported as pushed (in number of timer ticks). */
@@ -137,8 +143,12 @@ static void gatt_init(void)
 /**
  * @brief Function for initializing the Advertising functionality.
  *
- * @details Encodes the required advertising data and passes it to the stack.
- *          Also builds a structure to be passed to the stack when starting advertising.
+ * @details Configures advertising with 5 second interval.
+ *          SoftDevice automatically:
+ *          1. Sends advertising packet
+ *          2. Puts CPU to sleep (System ON Idle)
+ *          3. Wakes after 5 seconds
+ *          4. Repeats
  */
 static void advertising_init(void)
 {
@@ -176,22 +186,40 @@ static void advertising_init(void)
  */
 static void audio_write_handler(uint16_t conn_handle, ble_audio_acc_service_t *p_lbs, uint8_t command)
 {
-    bsp_board_led_on(LEDBUTTON_LED);
+    ret_code_t err_code;
+    bsp_board_led_on(AUDIO_PLAYING_LED);
     switch (command)
     {
     case AUDIO_CMD_PLAY_MELODY_1:
-        return audio_player_play(1);
+        err_code = audio_player_play(1);
+        if (err_code != NRF_SUCCESS)
+        {
+            NRF_LOG_ERROR("Failed to play melody 1: %d", err_code);
+            bsp_board_led_off(AUDIO_PLAYING_LED);
+        }
+        break;
 
     case AUDIO_CMD_PLAY_MELODY_2:
-        return audio_player_play(2);
+        err_code = audio_player_play(2);
+        if (err_code != NRF_SUCCESS)
+        {
+            NRF_LOG_ERROR("Failed to play melody 2: %d", err_code);
+            bsp_board_led_off(AUDIO_PLAYING_LED);
+        }
+        break;
 
     case AUDIO_CMD_STOP:
-        bsp_board_led_off(LEDBUTTON_LED);
-        return audio_player_stop();
+        err_code = audio_player_stop();
+        bsp_board_led_off(AUDIO_PLAYING_LED);
+        if (err_code != NRF_SUCCESS)
+        {
+            NRF_LOG_ERROR("Failed to stop playback: %d", err_code);
+        }
+        break;
 
     default:
         NRF_LOG_WARNING("Invalid audio command: 0x%02X", command);
-        return NRF_ERROR_INVALID_PARAM;
+        break;
     }
 }
 
@@ -412,7 +440,7 @@ static void power_management_init(void)
 static void audio_playback_complete(uint8_t melody_id)
 {
     NRF_LOG_INFO("Melody %d playback completed", melody_id);
-    bsp_board_led_off(LEDBUTTON_LED);
+    bsp_board_led_off(AUDIO_PLAYING_LED);
 }
 
 /**
@@ -457,6 +485,7 @@ static void acc_init(void)
     accelerometer_init_t init = {0};
 
     init.i2c_address = BMA280_I2C_ADRESS;
+    init.int_pin = ACCEL_INT_PIN;
     init.motion_handler = accelerometer_interrupt_handler;
 
     err_code = accelerometer_init(&init);

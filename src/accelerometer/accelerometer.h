@@ -90,7 +90,8 @@ typedef void (*accelerometer_motion_handler_t)(const accelerometer_data_t *p_dat
  */
 typedef struct
 {
-    uint8_t i2c_address;                                 /**< I2C device address */
+    uint8_t i2c_address;                           /**< I2C device address */
+    uint8_t int_pin;                               /**< motion interrupt pin*/
     accelerometer_motion_handler_t motion_handler; /**< Motion interrupt callback */
 } accelerometer_init_t;
 

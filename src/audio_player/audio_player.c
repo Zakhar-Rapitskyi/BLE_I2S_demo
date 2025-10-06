@@ -37,9 +37,8 @@ static struct
 };
 
 /**
- * @brief Fill I2S buffer with audio samples
- *
- * Converts 16-bit mono samples to 32-bit stereo format required by I2S
+ * @brief Fill I2S DMA buffer with audio samples
+ * @details Converts 16-bit mono to 32-bit stereo format
  */
 static void fill_i2s_buffer(void)
 {
